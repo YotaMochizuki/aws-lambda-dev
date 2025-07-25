@@ -1,0 +1,40 @@
+# ✅ テンプレートの形式バージョン（固定値）
+AWSTemplateFormatVersion: '2010-09-09'
+
+# ✅ SAM テンプレートであることを示す宣言
+Transform: AWS::Serverless-2016-10-31
+
+# ✅ このスタックの説明
+Description: Lambda with Layer example
+
+# ✅ グローバル設定（関数に共通で適用されるプロパティ）
+Globals:
+  Function:
+    Timeout: 3             # タイムアウト時間（秒）
+    Runtime: python3.13    # 使用するランタイムのバージョン
+
+# ✅ 定義するリソース一覧
+Resources:
+
+  ## 🧱 Lambda Layer の定義（再利用モジュールなどを格納）
+  MyLayer:
+    Type: AWS::Serverless::LayerVersion  # リソースタイプ：レイヤー
+    Properties:
+      LayerName: mylayer                 # レイヤー名（一意になるように）
+      ContentUri: layers/mylayer         # レイヤーのファイルパス（python ディレクトリの1つ上を指定）
+      CompatibleRuntimes:
+        - python3.13                     # このレイヤーが対応するランタイム
+      Description: Common utilities layer  # レイヤーの説明
+
+  ## 🧠 Lambda 関数の定義
+  LambdaApp: # ← launch.json の invokeTarget.logicalId と一致させる必要あり
+    Type: AWS::Serverless::Function       # リソースタイプ：Lambda 関数
+    Properties:
+      FunctionName: lambdaApp             # Lambda 関数名
+      Handler: app.lambda_handler         # エントリポイント（app.py の lambda_handler 関数）
+      CodeUri: .                          # 関数コードのパス（カレントディレクトリ）
+      Layers:
+        - !Ref MyLayer                    # この関数に先ほどのレイヤーを紐付ける
+      Events:
+        HttpApi:                          # API Gateway 経由で呼び出すためのイベントトリガー
+          Type: HttpApi                   # イベントタイプ：HTTP API
